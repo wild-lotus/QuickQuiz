@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Assertions;
@@ -11,7 +12,7 @@ namespace CgfGames {
 
 		void Loading (bool loading);
 
-		void ShowLeaderboard (LeaderboardEntry[] entries);
+		void ShowLeaderboard (List<LeaderboardEntry> entries);
 	}
 
 	public class LeaderboardView : MonoBehaviour, ILeaderboardView {
@@ -36,9 +37,9 @@ namespace CgfGames {
 			leaderboardGobj.SetActive (!loading);
 		}
 
-		public void ShowLeaderboard (LeaderboardEntry[] entries) {
+		public void ShowLeaderboard (List<LeaderboardEntry> entries) {
 			Text[] texts = leaderboardGobj.GetComponentsInChildren<Text> ();
-			for (int i = 0; i < entries.Length; i++) {
+			for (int i = 0; i < entries.Count; i++) {
 				texts [2 * i].text = (entries[i].Position + 1) + ".";
 				texts [2 * i + 1].text = entries[i].Score.ToString ();
 				if (entries [i].IsPlayer) {

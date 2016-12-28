@@ -1,24 +1,26 @@
 ﻿using System.IO;
 using UnityEngine;
-using UnityEngine.Assertions;
+using Zenject;
 
 namespace CgfGames {
 
 	public class EntryPoint : MonoBehaviour {
 
-		public GameView gameView;
+		GameCtrl _gameCtrl;
 
-		void Awake () {
-			Assert.IsNotNull (gameView);
+		[Inject]
+		public void Construct (GameCtrl gameCtrl) {
+			_gameCtrl = gameCtrl;
 		}
 
+
 		void Start () {
-			new GameCtrl (gameView).Start ();
+			_gameCtrl.Start ();
 		}
 
 		[ContextMenu ("Reset QuizState")]
 		public void ResetQuizState () {
-			File.Delete (QuizStateFile.PATH);
+			File.Delete (QuizStateFileDataStore.PATH);
 			Debug.Log ("QuizState file deleted");
 		}
 	}

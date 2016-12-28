@@ -99,7 +99,7 @@ namespace CgfGames {
 
 		private IObservable<int> StartTimer () {
 			return Observable.Timer (TimeSpan.Zero, TimeSpan.FromSeconds (1))
-				.Do (t => feedbackText.text = (5 - t).ToString ())
+				.Do (t => feedbackText.text = (ANSWER_TIME - t).ToString ())
 				.Skip (ANSWER_TIME)
 				.Select (_ => -1);
 		}

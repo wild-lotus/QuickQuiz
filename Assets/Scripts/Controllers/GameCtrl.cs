@@ -1,4 +1,5 @@
-﻿using UniRx;
+﻿using Zenject;
+using UniRx;
 
 namespace CgfGames {
 
@@ -8,8 +9,17 @@ namespace CgfGames {
 
 		private IGameView _view;
 
-		public GameCtrl (IGameView view) {
+		private IMainScreenCtrlFactory _mainScreenCtrlFactory;
+
+		private IQuizCtrlFactory _quizCtrlFactory;
+
+		private ILeaderboardCtrlFactory _leaderboardCtrlFactory;
+
+		public GameCtrl (IGameView view, IMainScreenCtrlFactory mainScreenCtrlFactory, IQuizCtrlFactory quizCtrlFactory, ILeaderboardCtrlFactory leaderboardCtrlFactory ) {
 			_view = view;
+			_mainScreenCtrlFactory = mainScreenCtrlFactory;
+			_quizCtrlFactory = quizCtrlFactory;
+			_leaderboardCtrlFactory = leaderboardCtrlFactory;
 		}
 
 		public void Start () {
@@ -28,35 +38,17 @@ namespace CgfGames {
 			switch (screen)
 			{
 				case Screen.Main:
-					nextScreenDone = this.NewMainScreenCtrl().Start ();
+					nextScreenDone = _mainScreenCtrlFactory.Create ().Start ();
 					break;
 				case Screen.Quiz:
-					nextScreenDone = this.NewQuizCtrl().Start ();
+					nextScreenDone = _quizCtrlFactory.Create ().Start ();
 					break;
 				case Screen.Leaderboard:
-					nextScreenDone = this.NewLeaderboardCtrl().Start ();
+					nextScreenDone = _leaderboardCtrlFactory.Create ().Start ();
 					break;
 			}
 			nextScreenDone
 				.Subscribe (nextScreen => this.NavigateTo (nextScreen));
-		}
-
-		private IMainScreenCtrl NewMainScreenCtrl () {
-			return new MainScreenCtrl (_view.MainScreenView);
-		}
-
-		private IQuizCtrl NewQuizCtrl () {
-			return new QuizCtrl (
-				_view.QuizView,
-				new QuizRepo (),
-				new QuizProgressCtrl ()
-			);
-		}
-
-		private ILeaderboardCtrl NewLeaderboardCtrl () {
-			return new LeaderboardCtrl (
-				_view.LeaderboardView, new QuizRepo ()
-			);
 		}
 	}
 }

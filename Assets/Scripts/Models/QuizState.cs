@@ -19,6 +19,8 @@ namespace CgfGames {
 
 		public List<QuestionResult> results;
 
+		public static QuizState Empty = new QuizState ();
+
 		public QuizState () {
 			results = new List<QuestionResult> ();
 		}

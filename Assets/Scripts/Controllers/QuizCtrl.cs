@@ -1,16 +1,12 @@
 ﻿using UnityEngine;
+using Zenject;
 using UniRx;
 
 namespace CgfGames {
 	
-	public interface IQuizCtrl : IScreenCtrl {
+	public interface IQuizCtrl : IScreenCtrl {}
 
-		void PlayNewQuestion (IQuizState quizState);
-
-		void OnQuestionAnswered (IQuizState quizState, IQuestion question, bool correctAnswer);
-
-		void OnBackClicked (IQuizState quizState);
-	}
+	public class IQuizCtrlFactory : Factory<IQuizCtrl> {}
 
 	public class QuizCtrl : IQuizCtrl {
 
@@ -27,17 +23,20 @@ namespace CgfGames {
 
 		private readonly IQuizProgressCtrl _quizProgressCtrl;
 
+		private readonly IQuestionCtrlFactory _questionCtrlFactory;
+
 		#endregion
 
 		#region Constructor
 		//======================================================================
 
-		public QuizCtrl (IQuizView view, IQuizRepo repo, IQuizProgressCtrl quizProgressCtrl) {
+		public QuizCtrl (IQuizView view, IQuizRepo repo, IQuizProgressCtrl quizProgressCtrl, IQuestionCtrlFactory questionCtrlFactory) {
 			_done = new Subject<Screen> ();
 			_disposables = new CompositeDisposable();
 			_view = view;
 			_repo = repo;
 			_quizProgressCtrl = quizProgressCtrl;
+			_questionCtrlFactory = questionCtrlFactory;
 		}
 
 		#endregion
@@ -56,7 +55,7 @@ namespace CgfGames {
 			return _done;
 		}
 
-		public void PlayNewQuestion (IQuizState quizState) {
+		private void PlayNewQuestion (IQuizState quizState) {
 			_view.Loading (true);
 			_view.SetQuizState (quizState);
 			_view.UpdateScore (_quizProgressCtrl.Score (quizState));
@@ -71,17 +70,14 @@ namespace CgfGames {
 
 		private void OnQuestionLoaded (IQuizState quizState, IQuestion question) {
 			_view.Loading (false);
-			new QuestionCtrl (
-				_view.QuestionView,
-				question
-			).Play ()
+			_questionCtrlFactory.Create (question).Play ()
 				.Subscribe (correctAnswer => 
 					this.OnQuestionAnswered (quizState, question, correctAnswer)
 				)
 				.AddTo(_disposables);
 		}
 
-		public void OnQuestionAnswered (IQuizState quizState, IQuestion question, bool correctAnswer) {
+		private void OnQuestionAnswered (IQuizState quizState, IQuestion question, bool correctAnswer) {
 			IQuizState nextState = quizState.Next (question.Difficulty, correctAnswer);
 			if (_quizProgressCtrl.HasLost (nextState)) {
 				this.Lost (nextState);
@@ -91,7 +87,7 @@ namespace CgfGames {
 		}
 
 		private void Lost (IQuizState lostState) {
-			_repo.SetQuizState (new QuizState ());
+			_repo.SetQuizState (QuizState.Empty);
 			int score = _quizProgressCtrl.Score (lostState);
 			Debug.Log ("GameOver: " + score);
 			_repo.UpdateScore (score).Subscribe ().AddTo(_disposables);
@@ -103,12 +99,12 @@ namespace CgfGames {
 				.AddTo(_disposables);
 		}
 
-		public void OnBackClicked (IQuizState quizState) {
+		private void OnBackClicked (IQuizState quizState) {
 			_repo.SetQuizState (quizState);
 			this.Close (Screen.Main);
 		}
 
-		public void OnApplicationQuit (IQuizState quizState) {
+		private void OnApplicationQuit (IQuizState quizState) {
 			_repo.SetQuizState (quizState);
 		}
 

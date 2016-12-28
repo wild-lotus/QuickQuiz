@@ -1,4 +1,5 @@
-﻿using UniRx;
+﻿using Zenject;
+using UniRx;
 
 namespace CgfGames {
 
@@ -6,6 +7,9 @@ namespace CgfGames {
 
 		void OnStartQuizClicked ();
 	}
+
+	public class IMainScreenCtrlFactory : Factory<IMainScreenCtrl> {}
+
 
 	public class MainScreenCtrl : IMainScreenCtrl {
 

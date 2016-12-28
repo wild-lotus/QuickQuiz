@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
-using UnityEngine;
 using UniRx;
-using PlayFab.ClientModels;
 
 namespace CgfGames {
 
@@ -15,7 +13,7 @@ namespace CgfGames {
 
 		IObservable<IQuestion> RandomQuestion (Difficulty difficulty);
 
-		IObservable<LeaderboardEntry[]> GetLeaderboard ();
+		IObservable<List<LeaderboardEntry>> GetLeaderboard ();
 
 		IObservable<int> UpdateScore (int score);
 
@@ -23,32 +21,36 @@ namespace CgfGames {
 
 	public class QuizRepo : IQuizRepo {
 
-		IQuizStateFile _file;
+		IQuizStateDataStore _quizStateDataStore;
 
-		public QuizRepo () {
-			_file = new QuizStateFile ();
+		IQuestionDataStore _questionDataStore;
+
+		ILeaderboardDataStore _leaderboardDataStore;
+
+		public QuizRepo (IQuizStateDataStore quizStateDataStore, IQuestionDataStore questionDataStore, ILeaderboardDataStore leaderboardDataStore) {
+			_quizStateDataStore = quizStateDataStore;
+			_questionDataStore = questionDataStore;
+			_leaderboardDataStore = leaderboardDataStore;
 		}
 
 		public IObservable<IQuizState> GetQuizState () {
-			return _file.Get ();
+			return _quizStateDataStore.Get ();
 		}
 
 		public void SetQuizState (IQuizState quizState) {
-			_file.Set (quizState);
+			_quizStateDataStore.Set (quizState);
 		}
 
 		public IObservable<IQuestion> RandomQuestion (Difficulty difficulty) {
-			return new GetQuestionsRequest()
-				.Send(1, difficulty)
-				.Select(questions => questions[0]);
+			return _questionDataStore.Get (difficulty);
 		}
 
-		public IObservable<LeaderboardEntry[]> GetLeaderboard () {
+		public IObservable<List<LeaderboardEntry>> GetLeaderboard () {
 			return DelayWhileNotLoggedIn ()
 				.ContinueWith (
 					Observable.CombineLatest (
-						this.GetLeaderboardTopEntries (),
-						this.GetPlayerLeaderboardEntry (),
+						_leaderboardDataStore.GetTopEntries (),
+						_leaderboardDataStore.GetPlayerEntry (),
 						this.Combine
 					)
 				);
@@ -63,40 +65,20 @@ namespace CgfGames {
 				.DefaultIfEmpty (0);
 		}
 
-		private IObservable<LeaderboardEntry[]> GetLeaderboardTopEntries () {
-			return new GetLeaderboardRequest().Send()
-				.Select (entries => this.Transform (entries));
-		}
-
-		private IObservable<LeaderboardEntry> GetPlayerLeaderboardEntry () {
-			return new GetPlayerLeaderboardEntryRequest().Send()
-				.Select (entry => this.Transform(entry));
-		}
-
-		private LeaderboardEntry[] Combine (LeaderboardEntry[] topEntries, LeaderboardEntry playerEntry) {
+		private List<LeaderboardEntry> Combine (List<LeaderboardEntry> topEntries, LeaderboardEntry playerEntry) {
 			int playerPos = playerEntry.Position;
 			if (playerPos < 10) {
-				topEntries[playerPos].IsPlayer = true;
+				LeaderboardEntry tempEntry = topEntries[playerPos];
+				tempEntry.IsPlayer = true;
+				topEntries[playerPos] = tempEntry;
 			} else {
 				topEntries[9] = playerEntry;
-			} return topEntries;
-		}
-
-		private LeaderboardEntry[] Transform (List<PlayerLeaderboardEntry> playerLeaderboardEntries) {
-			return playerLeaderboardEntries.Select (this.Transform).ToArray ();
-		}
-
-		private LeaderboardEntry Transform (PlayerLeaderboardEntry playerLeaderboardEntry) {
-			return new LeaderboardEntry  () {
-				Position = playerLeaderboardEntry.Position,
-				Score = playerLeaderboardEntry.StatValue,
-				IsPlayer = 
-					playerLeaderboardEntry.PlayFabId == PlayFabManager.PlayFabId
-			};
+			}
+			return topEntries;
 		}
 
 		public IObservable<int> UpdateScore (int score) {
-			return new UpdatePlayerStatisticRequest ().Send (score);
+			return _leaderboardDataStore.SetPlayerScore (score);
 		}
 	}
 }

@@ -1,8 +1,12 @@
-﻿using UniRx;
+﻿using System.Collections.Generic;
+using Zenject;
+using UniRx;
 
 namespace CgfGames {
 
 	public interface ILeaderboardCtrl : IScreenCtrl {}
+
+	public class ILeaderboardCtrlFactory : Factory<ILeaderboardCtrl> {}
 
 	public class LeaderboardCtrl : ILeaderboardCtrl {
 
@@ -28,7 +32,7 @@ namespace CgfGames {
 			return _done;
 		}
 
-		private void OnLeaderboardLoaded (LeaderboardEntry[] entries) {
+		private void OnLeaderboardLoaded (List<LeaderboardEntry> entries) {
 			_view.Loading (false);
 			_view.ShowLeaderboard (entries);
 		}
